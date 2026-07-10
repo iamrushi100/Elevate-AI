@@ -1,0 +1,51 @@
+# -------------------------
+# Backend Framework
+# -------------------------
+fastapi
+uvicorn
+
+# -------------------------
+# AI / LLM / LangChain
+# -------------------------
+langchain
+langchain-community
+langchain-groq
+langchain-text-splitters
+langchain-huggingface
+groq
+
+# -------------------------
+# Embeddings & Vector DB
+# -------------------------
+chromadb
+sentence-transformers
+
+# -------------------------
+# ML / Transformers
+# -------------------------
+transformers
+torch
+
+# -------------------------
+# OCR & Image Processing
+# -------------------------
+pytesseract
+Pillow
+poppler
+
+# -------------------------
+# PDF Processing
+# -------------------------
+pdf2image
+pypdf
+
+# -------------------------
+# Data Handling
+# -------------------------
+pydantic
+python-multipart
+
+# -------------------------
+# Environment Variables
+# -------------------------
+python-dotenv
