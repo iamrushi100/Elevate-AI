@@ -1,0 +1,353 @@
+/* GOOGLE FONT */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Plus Jakarta Sans', sans-serif;
+}
+
+body{
+    background:#131619;
+    color:white;
+    min-height:100vh;
+    overflow:auto;
+    padding:12px;
+}
+
+/* MAIN TITLE */
+
+body > h1:first-of-type{
+    display:none;
+}
+
+/* MAIN CONTAINER */
+
+.main-container{
+    display:flex;
+    flex-direction:row;
+    gap:12px;
+
+    width:100%;
+    height:calc(100vh - 24px);
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:312px;
+    height:100%;
+
+    background:#0D0F10;
+
+    border-radius:20px;
+
+    display:flex;
+    flex-direction:column;
+
+    overflow:hidden;
+
+    padding:0; 
+}
+
+/* SIDEBAR TITLE */
+
+.sidebar h2{
+    padding:24px;
+
+    font-size:12px;
+    font-weight:600;
+
+    color:#686B6E;
+
+    letter-spacing:1px;
+
+    border-bottom:1px solid #131619;
+}
+
+/* SUBJECTS */
+
+.subject{
+    display:flex;
+    align-items:center;
+
+    width:calc(100% - 16px);
+
+    margin:4px 8px;
+
+    padding:14px 16px;
+
+    border-radius:14px;
+
+    font-size:14px;
+    font-weight:600;
+
+    color:white;
+
+    cursor:pointer;
+
+    transition:0.2s ease;
+}
+
+.subject:hover{
+    background:#181D20;
+}
+
+.subject.active{
+    background:#181D20;
+    color:#B6F09C;
+}
+
+.subject.disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+}
+
+/* MAIN CONTENT */
+
+.main-content{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    overflow-y:auto;
+}
+
+/* TOP SECTION */
+
+.main-content > h1{
+    background:#0D0F10;
+
+    border-radius:20px;
+
+    padding:28px;
+
+    font-size:28px;
+    line-height:40px;
+
+    color:white;
+
+    font-weight:700;
+}
+
+/* FEATURES */
+
+.features{
+    display:flex;
+    flex-wrap:wrap;
+
+    gap:12px;
+}
+
+.card{
+    background:#0D0F10;
+
+    border-radius:18px;
+
+    padding:18px 22px;
+
+    min-width:180px;
+
+    font-size:14px;
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:0.2s ease;
+
+    border:1px solid transparent;
+}
+
+.card:hover{
+    border:1px solid #B6F09C;
+    transform:translateY(-2px);
+}
+
+/* SECTIONS */
+
+.section{
+    flex:1;
+
+    background:#0D0F10;
+
+    border-radius:20px;
+
+    padding:24px;
+
+    overflow:visible;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:20px;
+}
+
+.hidden{
+    display:none;
+}
+
+/* HEADINGS */
+
+.section h2{
+    font-size:20px;
+    font-weight:700;
+}
+
+/* INPUTS */
+
+input,
+textarea{
+    width:100%;
+
+    background:#161A1C;
+
+    border:none;
+
+    outline:none;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    color:white;
+
+    font-size:15px;
+}
+
+textarea{
+    min-height:180px;
+    resize:vertical;
+}
+
+/* BUTTONS */
+
+button{
+    background:#B6F09C;
+
+    color:black;
+
+    border:none;
+
+    border-radius:16px;
+
+    padding:14px 20px;
+
+    font-size:14px;
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:0.2s ease;
+
+    width:fit-content;
+}
+
+button:hover{
+    transform:translateY(-2px);
+}
+
+/* PRE TEXT */
+
+pre{
+    white-space:pre-wrap;
+    word-wrap:break-word;
+
+    background:#161A1C;
+
+    padding:20px;
+
+    border-radius:18px;
+
+    line-height:28px;
+
+    color:#E4E7EA;
+
+    overflow:auto;
+}
+#answer {
+    min-height: 150px;
+    max-height: none;
+    overflow: visible;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.8;     /* adds breathing room between lines */
+}
+
+/* DIAGRAM */
+
+#diagram{
+    width:100%;
+
+    max-height:450px;
+
+    object-fit:contain;
+
+    background:#161A1C;
+
+    border-radius:20px;
+
+    padding:16px;
+
+    display:block;
+}
+
+/* QUIZ */
+
+#mcq_container{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+/* QUIZ CARD */
+
+#mcq_container > div{
+    background:#161A1C !important;
+
+    border-radius:18px !important;
+
+    border:none !important;
+}
+
+/* SCORE */
+
+#score_summary{
+    background:#161A1C !important;
+
+    border-radius:20px !important;
+}
+
+/* SCROLLBAR */
+
+::-webkit-scrollbar{
+    width:8px;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#2A2F33;
+    border-radius:10px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1000px){
+
+    .main-container{
+        flex-direction:column;
+    }
+
+    .sidebar{
+        width:100%;
+        height:auto;
+    }
+
+    .features{
+        flex-direction:column;
+    }
+
+    .card{
+        width:100%;
+    }
+
+}

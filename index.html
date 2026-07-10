@@ -1,717 +1,488 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Virtual AI Tutor</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-<style>
-  /* ── Reset & base ─────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:        #0d0f14;
-    --surface:   #161a23;
-    --surface2:  #1e2330;
-    --border:    #2a2f3e;
-    --text:      #e2e8f0;
-    --muted:     #64748b;
-    --student-bubble: #1e3a5f;
-    --ai-bubble:      #1a2535;
+    <title>Elevate AI</title>
 
-    --glow-idle:      rgba(100,116,139,0.55);
-    --glow-listening: rgba(99,102,241,0.65);
-    --glow-thinking:  rgba(245,158,11,0.65);
-    --glow-speaking:  rgba(34,197,94,0.65);
-
-    --ring-idle:      #64748b;
-    --ring-listening: #6366f1;
-    --ring-thinking:  #f59e0b;
-    --ring-speaking:  #22c55e;
-  }
-
-  html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-
-  /* ── App shell ────────────────────────────────────────────── */
-  #app {
-    display: grid;
-    grid-template-rows: 1fr auto;
-    grid-template-columns: 340px 1fr;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* ── Left panel ───────────────────────────────────────────── */
-  #left-panel {
-    grid-row: 1 / 3;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 32px 20px;
-  }
-
-  #orb-wrapper {
-    position: relative;
-    width: 220px;
-    height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* glow ring */
-  #orb-wrapper::before {
-    content: '';
-    position: absolute;
-    inset: -12px;
-    border-radius: 50%;
-    border: 3px solid var(--ring-idle);
-    box-shadow: 0 0 22px 4px var(--glow-idle), inset 0 0 14px 2px var(--glow-idle);
-    transition: border-color 0.4s, box-shadow 0.4s;
-  }
-
-  #orb-wrapper.listening::before {
-    border-color: var(--ring-listening);
-    box-shadow: 0 0 28px 8px var(--glow-listening), inset 0 0 18px 4px var(--glow-listening);
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-  #orb-wrapper.thinking::before {
-    border-color: var(--ring-thinking);
-    box-shadow: 0 0 28px 8px var(--glow-thinking), inset 0 0 18px 4px var(--glow-thinking);
-    animation: spin 2s linear infinite;
-  }
-  #orb-wrapper.speaking::before {
-    border-color: var(--ring-speaking);
-    box-shadow: 0 0 28px 8px var(--glow-speaking), inset 0 0 18px 4px var(--glow-speaking);
-    animation: pulse 0.9s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.55; }
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-
-  #lottie-container { width: 200px; height: 200px; }
-
-  #state-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    transition: color 0.3s;
-  }
-  #state-label.listening { color: #818cf8; }
-  #state-label.thinking  { color: #fbbf24; }
-  #state-label.speaking  { color: #4ade80; }
-
-  #context-status {
-    font-size: 0.72rem;
-    color: var(--muted);
-    text-align: center;
-    line-height: 1.5;
-  }
-  #context-status .ok   { color: #4ade80; }
-  #context-status .warn { color: #f87171; }
-
-  /* ── Right panel — chat ───────────────────────────────────── */
-  #chat-panel {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  #chat-header {
-    padding: 18px 24px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  #chat-header h1 { font-size: 1.1rem; font-weight: 700; }
-  #chat-header .badge {
-    font-size: 0.68rem;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: #1e3a5f;
-    color: #93c5fd;
-    font-weight: 600;
-  }
-
-  #chat-history {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    scroll-behavior: smooth;
-  }
-  #chat-history::-webkit-scrollbar { width: 5px; }
-  #chat-history::-webkit-scrollbar-track { background: transparent; }
-  #chat-history::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-  .bubble {
-    max-width: 75%;
-    padding: 12px 16px;
-    border-radius: 16px;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    animation: fadeUp 0.25s ease;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .bubble.student {
-    align-self: flex-end;
-    background: var(--student-bubble);
-    border-bottom-right-radius: 4px;
-    color: #bfdbfe;
-  }
-  .bubble.ai {
-    align-self: flex-start;
-    background: var(--ai-bubble);
-    border: 1px solid var(--border);
-    border-bottom-left-radius: 4px;
-  }
-  .bubble .label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-    opacity: 0.6;
-  }
-  .bubble.student .label { color: #93c5fd; }
-  .bubble.ai .label      { color: #4ade80; }
-
-  .pyq-flag {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: #422006;
-    color: #fbbf24;
-    border: 1px solid #92400e;
-  }
-
-  .empty-state {
-    margin: auto;
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 2;
-  }
-  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
-
-  /* ── Bottom bar ───────────────────────────────────────────── */
-  #bottom-bar {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 18px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  #transcript-preview {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 16px;
-    font-size: 0.85rem;
-    color: var(--muted);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    transition: border-color 0.3s;
-  }
-  #transcript-preview.active {
-    border-color: #6366f1;
-    color: var(--text);
-  }
-
-  .btn-round {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
-    flex-shrink: 0;
-  }
-  .btn-round:active { transform: scale(0.93); }
-  .btn-round:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  #mic-btn {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    box-shadow: 0 0 0 0 rgba(99,102,241,0.5);
-  }
-  #mic-btn.recording {
-    animation: micPulse 1.2s ease-in-out infinite;
-  }
-  @keyframes micPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.6); }
-    50%       { box-shadow: 0 0 0 12px rgba(99,102,241,0); }
-  }
-
-  #stop-btn {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-  }
-  #stop-btn:disabled { background: var(--surface2); }
-
-  /* ── Error toast ──────────────────────────────────────────── */
-  #toast {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: #7f1d1d;
-    border: 1px solid #ef4444;
-    color: #fca5a5;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 0.82rem;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    z-index: 999;
-    pointer-events: none;
-    max-width: 480px;
-    text-align: center;
-  }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-</style>
+    <!-- LINK CSS FILE -->
+    <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-<div id="app">
+<h1>🚀 Elevate AI</h1>
 
-  <!-- ── Left panel ── -->
-  <div id="left-panel">
-    <div id="orb-wrapper">
-      <div id="lottie-container"></div>
+<!-- SUBJECTS -->
+<div class="main-container">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>Subjects</h2>
+
+        <div class="subject active" onclick="selectSubject(event, 'SDN')">SDN ✅</div>
+        <div class="subject disabled">Deep Learning</div>
+        <div class="subject disabled">HPC</div>
+        <div class="subject disabled">ISM</div>
     </div>
-    <div id="state-label">Idle</div>
-    <div id="context-status">
-✅ Connected to Elevate AI Knowledge Base
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <h1>🚀 Elevate AI</h1>
+
+        <!-- FEATURE BUTTONS -->
+        <div class="features">
+    <div class="card" onclick="show('chat')">💬 Q&A</div>
+
+    <div class="card" onclick="show('revision')">
+        📘 Revision
+    </div>
+
+    <div class="card" onclick="show('quiz')">
+        🧪 Quiz
+    </div>
+
+    <div class="card" onclick="show('analysis')">
+        📊 Analysis
+    </div>
+
+    <div class="card" onclick="show('practice')">
+        ✍️ Practice
+    </div>
+
+    <!-- NEW BUTTON -->
+    <div class="card" onclick="openAssistant()">
+        🎙️ Virtual Assistant
+    </div>
 </div>
-  </div>
 
-  <!-- ── Right panel ── -->
-  <div id="chat-panel">
-    <div id="chat-header">
-      <h1>🎓 AI Tutor</h1>
-      <span class="badge">LLaMA 70B · Deepgram · Sarvam</span>
-    </div>
-    <div id="chat-history">
-      <div class="empty-state">
-        <div class="icon">🎙️</div>
-        Press the mic and ask your question.<br>
-        I'll answer from your textbook &amp; past papers.
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Bottom bar ── -->
-  <div id="bottom-bar">
-    <button class="btn-round" id="mic-btn" title="Start recording">🎤</button>
-    <button class="btn-round" id="stop-btn" title="Stop recording" disabled>⏹️</button>
-    <div id="transcript-preview">Your question will appear here…</div>
-  </div>
-
+<!-- Q&A -->
+<div id="chat" class="section hidden">
+    <h2>Ask Question</h2>
+    <input id="question" placeholder="Enter question">
+    <button onclick="ask()">Ask</button>
+    <pre id="pyq"></pre>
+    <pre id="answer"></pre>
+    <img id="diagram">
 </div>
 
-<div id="toast"></div>
+<!-- REVISION -->
+<div id="revision" class="section hidden">
+    <h2>📘 Revision</h2>
+    <input id="unit" placeholder="Unit (e.g., Unit 1)">
+    <button onclick="revision()">Generate</button>
+    
+    <!-- Loading indicator -->
+    <p id="revision_loading" style="display:none; color:#22c55e;">
+        ⏳ Generating revision...
+    </p>
+    
+    <pre id="revision_output"></pre>
+    
+    <!-- Copy button -->
+    <button id="copy_btn" onclick="copyRevision()" 
+        style="display:none; margin-top:10px;">
+        📋 Copy Revision
+    </button>
+</div>
+
+<!-- QUIZ -->
+<!-- QUIZ -->
+<div id="quiz" class="section hidden">
+    <h2>🧪 Quiz</h2>
+    <input id="quiz_unit" placeholder="Unit (e.g., Unit 1)">
+    <button onclick="startQuiz()">Generate Quiz</button>
+
+    <p id="quiz_loading" style="display:none; color:#22c55e;">
+        ⏳ Generating quiz from PYQs...
+    </p>
+
+    <!-- Interactive MCQ Container -->
+    <div id="mcq_container"></div>
+
+    <!-- Score Summary -->
+    <div id="score_summary" style="display:none; margin-top:20px; 
+         background:#020617; padding:20px; border-radius:12px; text-align:center;">
+        <h2 id="score_text"></h2>
+        <p id="score_msg"></p>
+        <button onclick="startQuiz()">🔄 Retake Quiz</button>
+    </div>
+</div>
+
+<!-- ANALYSIS -->
+<div id="analysis" class="section hidden">
+    <h2>Weak Topic Analysis</h2>
+    <textarea id="mistakes" placeholder="Paste mistakes"></textarea>
+    <button onclick="analyze()">Analyze</button>
+    <pre id="analysis_output"></pre>
+</div>
+<!-- PRACTICE (5th FEATURE) -->
+<div id="practice" class="section hidden">
+    <h2>Answer Writing Practice</h2>
+
+    <!-- NEW: AI generates question -->
+    <button onclick="generateQuestion()">Get Question</button>
+
+    <pre id="generatedQuestion"></pre>
+
+    <!-- USER ANSWER -->
+    <textarea id="answerInput" placeholder="Write your answer here"></textarea>
+
+    <button onclick="evaluateAnswer()">Check Answer</button>
+
+    <br><br>
+
+    <!-- IMAGE UPLOAD -->
+    <input type="file" id="imageInput">
+    <button onclick="uploadImage()">Upload Handwritten Answer</button>
+
+    <h3>Result:</h3>
+    <pre id="evaluationResult"></pre>
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════════════════════
-const CFG = {
-  deepgramKey: '71a583f4261e18d15401a7f1d62543b678fbd620',
-  sarvamKey:   'sk_pxhia3va_0eryH5xphIOOgRx1N7ToEbYs',
-  groqKey:     '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',
-  groqModel:   'llama-3.3-70b-versatile',
-  sarvamVoice: 'anushka',         // Sarvam voice ID
-  sarvamLang:  'en-IN',
-};
 
-// ═══════════════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════════════
-let appState   = 'idle';       // idle | listening | thinking | speaking
-let mediaStream   = null;
-let mediaRecorder = null;
-let dgSocket      = null;
-let lottieAnim    = null;
-let currentAudio  = null;
-let liveTranscript = '';
-let silenceTimer = null;
+const BASE_URL = "http://127.0.0.1:8000";
+let selectedSubject = "SDN";
 
-// ═══════════════════════════════════════════════════════════════
-//  DOM refs
-// ═══════════════════════════════════════════════════════════════
-const orbWrapper    = document.getElementById('orb-wrapper');
-const stateLabel    = document.getElementById('state-label');
-const ctxStatus     = document.getElementById('context-status');
-const chatHistory   = document.getElementById('chat-history');
-const micBtn        = document.getElementById('mic-btn');
-const stopBtn       = document.getElementById('stop-btn');
-const transcriptPre = document.getElementById('transcript-preview');
-const toast         = document.getElementById('toast');
-
-// ═══════════════════════════════════════════════════════════════
-//  LOTTIE  — load animation per state
-// ═══════════════════════════════════════════════════════════════
-const ANIM_MAP = {
-  idle:      '/assets/animations/idle.json',
-  listening: '/assets/animations/listening.json',
-  thinking:  '/assets/animations/thinking.json',
-  speaking:  '/assets/animations/speaking.json',
-};
-
-function loadLottie(state) {
-  if (lottieAnim) { lottieAnim.destroy(); lottieAnim = null; }
-  lottieAnim = lottie.loadAnimation({
-    container: document.getElementById('lottie-container'),
-    renderer:  'svg',
-    loop:      true,
-    autoplay:  true,
-    path:      ANIM_MAP[state],
-  });
-  lottieAnim.addEventListener('data_failed', () => {
-    // Fallback: render a simple CSS circle if JSON missing
-    document.getElementById('lottie-container').innerHTML =
-      `<div style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#3b4563,#0d0f14);display:flex;align-items:center;justify-content:center;font-size:3rem;">
-        ${{ idle:'💤', listening:'👂', thinking:'🤔', speaking:'🔊' }[state]}
-      </div>`;
-  });
+// Switch UI
+function show(section) {
+    document.querySelectorAll(".section").forEach(s => s.classList.add("hidden"));
+    document.getElementById(section).classList.remove("hidden");
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  setState — drives everything
-// ═══════════════════════════════════════════════════════════════
-function setState(s) {
-  appState = s;
-  orbWrapper.className = s === 'idle' ? '' : s;
-  stateLabel.className = s === 'idle' ? '' : s;
-  stateLabel.textContent = { idle:'Idle', listening:'Listening…', thinking:'Thinking…', speaking:'Speaking' }[s];
-  loadLottie(s);
+// Q&A
+async function ask() {
+    let q = document.getElementById("question").value;
 
-  micBtn.disabled  = (s !== 'idle');
-  stopBtn.disabled = (s !== 'listening');
+    let res = await fetch(`${BASE_URL}/ask`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({question: q})
+    });
+
+    let data = await res.json();
+    document.getElementById("pyq").innerText = data.pyq || "No PYQ data";
+    document.getElementById("answer").innerText = data.answer || data.ERROR;
+
+    if (data.diagram) {
+        document.getElementById("diagram").src = `./diagrams/${data.diagram}`;
+    }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  CHAT BUBBLES
-// ═══════════════════════════════════════════════════════════════
-function removeEmptyState() {
-  const es = chatHistory.querySelector('.empty-state');
-  if (es) es.remove();
-}
-
-function addBubble(role, text, flagPYQ = false) {
-  removeEmptyState();
-  const div = document.createElement('div');
-  div.className = `bubble ${role}`;
-  const label = role === 'student' ? 'You' : '🤖 Tutor';
-  div.innerHTML = `<div class="label">${label}</div>${escHtml(text)}`;
-  if (flagPYQ) {
-    const tag = document.createElement('div');
-    tag.className = 'pyq-flag';
-    tag.textContent = '📌 This has appeared in Past Year Papers!';
-    div.appendChild(tag);
-  }
-  chatHistory.appendChild(div);
-  chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-
-
-// ═══════════════════════════════════════════════════════════════
-//  GROQ  — generate answer
-// ═══════════════════════════════════════════════════════════════
-async function askBackend(question) {
+// Revision
+async function revision() {
+    const unit = document.getElementById("unit").value || "Unit 1";
+    
+    // Show loading
+    document.getElementById("revision_loading").style.display = "block";
+    document.getElementById("revision_output").innerText = "";
+    document.getElementById("copy_btn").style.display = "none";
 
     const res = await fetch(
-        "http://127.0.0.1:8000/voice-ask",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                question: question
-            })
-        }
+        `${BASE_URL}/revision?subject=${selectedSubject}&unit=${unit}`
     );
+    const data = await res.json();
 
-    return await res.json();
+    // Hide loading
+    document.getElementById("revision_loading").style.display = "none";
+    
+    document.getElementById("revision_output").innerText = 
+        data.revision || data.ERROR;
+    
+    // Show copy button
+    document.getElementById("copy_btn").style.display = "inline-block";
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  SARVAM TTS  — text → speech
-// ═══════════════════════════════════════════════════════════════
-async function speakSarvam(text) {
-  // Sarvam AI TTS endpoint
-  const res = await fetch('https://api.sarvam.ai/text-to-speech', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'API-Subscription-Key': CFG.sarvamKey,
-    },
-    body: JSON.stringify({
-      inputs: [text],
-      target_language_code: CFG.sarvamLang,
-      speaker: CFG.sarvamVoice,
-      pitch: 0,
-      pace: 1.0,
-      loudness: 1.5,
-      speech_sample_rate: 22050,
-      enable_preprocessing: true,
-      model: 'bulbul:v2',
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Sarvam TTS error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json();
-  // Sarvam returns { audios: [ "<base64 wav>" ] }
-  const b64 = data.audios?.[0];
-  if (!b64) throw new Error('Sarvam returned no audio');
-
-  const audioSrc = `data:audio/wav;base64,${b64}`;
-  return new Promise((resolve, reject) => {
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    const audio = new Audio(audioSrc);
-    currentAudio = audio;
-    audio.onended = () => {
-
-    currentAudio = null;
-
-    resolve();
-};
-    audio.onerror  = (e) => reject(e);
-    audio.play().catch(reject);
-  });
+function copyRevision() {
+    const text = document.getElementById("revision_output").innerText;
+    navigator.clipboard.writeText(text);
+    alert("✅ Revision copied!");
 }
+// Quiz
+let quizData = [];
+let userAnswers = {};
+let score = 0;
 
-// ═══════════════════════════════════════════════════════════════
-//  DEEPGRAM  — real-time STT via WebSocket
-// ═══════════════════════════════════════════════════════════════
-async function startListening() {
-  setState('listening');
-  liveTranscript = '';
-  transcriptPre.textContent = '';
-  transcriptPre.classList.add('active');
+async function startQuiz() {
+    const unit = document.getElementById("quiz_unit").value || "Unit 1";
 
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 44100,
-        channelCount: 1
-      }
-    });
-} catch(e) {
-    showToast('Microphone access denied: ' + e.message);
-    setState('idle');
-    return;
-  }
+    document.getElementById("quiz_loading").style.display = "block";
+    document.getElementById("mcq_container").innerHTML = "";
+    document.getElementById("score_summary").style.display = "none";
+    quizData = [];
+    userAnswers = {};
+    score = 0;
 
-  const DG_URL =
-`wss://api.deepgram.com/v1/listen?model=nova-2
-&language=en-IN
-&smart_format=true
-&punctuate=true
-&interim_results=true
-&endpointing=2000
-&utterance_end_ms=2000
-&vad_events=true
-&filler_words=true`;
-  dgSocket = new WebSocket(DG_URL, ['token', CFG.deepgramKey]);
+    const res = await fetch(
+        `${BASE_URL}/generate-quiz?subject=${selectedSubject}&unit=${unit}`
+    );
+    const data = await res.json();
 
-  dgSocket.onopen = () => {
-    // Stream mic chunks to Deepgram
-    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: getSupportedMime() });
-    mediaRecorder.ondataavailable = (e) => {
-      if (dgSocket.readyState === WebSocket.OPEN && e.data.size > 0) {
-        dgSocket.send(e.data);
-      }
-    };
-    mediaRecorder.start(250); // send chunks every 250 ms
-    micBtn.classList.add('recording');
-  };
+    document.getElementById("quiz_loading").style.display = "none";
 
-  dgSocket.onmessage = (msg) => {
-
-    const json = JSON.parse(msg.data);
-
-    const alt = json?.channel?.alternatives?.[0];
-
-    if (!alt) return;
-
-    const t = alt.transcript?.trim();
-
-    if (!t) return;
-
-    if (json.is_final) {
-        liveTranscript +=
-        (liveTranscript ? ' ' : '') + t;
+    if (data.ERROR) {
+        document.getElementById("mcq_container").innerHTML = 
+            `<p style="color:red">${data.ERROR}</p>`;
+        return;
     }
 
-    transcriptPre.textContent =
-    (liveTranscript + (json.is_final ? '' : ' ' + t)) || t;
+    parseAndRenderQuiz(data.quiz);
+}
 
-    // AUTO SILENCE DETECTION
-    clearTimeout(silenceTimer);
+function parseAndRenderQuiz(rawQuiz) {
+    // Split questions and answers
+    const parts = rawQuiz.split("---END QUESTIONS---");
+    const questionsRaw = parts[0].trim();
+    const answersRaw = parts[1] || "";
 
-    silenceTimer = setTimeout(async () => {
+    // Parse correct answers
+    const correctAnswers = {};
+    answersRaw.split("\n").forEach(line => {
+        const match = line.match(/(\d+)-([A-D])/);
+        if (match) correctAnswers[match[1]] = match[2];
+    });
 
-        if (
-    appState === 'listening' &&
-    !currentAudio
-) {
+    // Parse questions
+    const questionBlocks = questionsRaw.split(/\nQ\d+\./).filter(Boolean);
+    const firstQ = questionsRaw.match(/^Q\d+\.(.*)/s);
 
-            setState('thinking');
+    const allBlocks = questionsRaw.split(/(?=Q\d+\.)/).filter(Boolean);
 
-            await stopListening();
+    quizData = allBlocks.map((block, index) => {
+        const qNum = index + 1;
+        const lines = block.trim().split("\n").filter(Boolean);
+
+        const titleLine = lines[0].replace(/^Q\d+\.\s*/, "").trim();
+        const options = {};
+        lines.slice(1).forEach(line => {
+            const m = line.match(/^([A-D])\.\s*(.+)/);
+            if (m) options[m[1]] = m[2];
+        });
+
+        return {
+            num: qNum,
+            question: titleLine,
+            options,
+            correct: correctAnswers[String(qNum)] || "A"
+        };
+    });
+
+    renderAllQuestions();
+}
+
+function renderAllQuestions() {
+    const container = document.getElementById("mcq_container");
+    container.innerHTML = "";
+
+    quizData.forEach(q => {
+        const card = document.createElement("div");
+        card.id = `q_card_${q.num}`;
+        card.style.cssText = `
+            background:#1e293b; border-radius:12px; 
+            padding:20px; margin:15px 0;
+            border: 2px solid #334155;
+        `;
+
+        // Tag color
+        const isPYQ = q.question.includes("[PYQ]");
+        const tag = isPYQ 
+            ? `<span style="background:#22c55e;color:black;padding:2px 8px;
+                border-radius:10px;font-size:0.75rem;font-weight:bold;">PYQ</span>`
+            : `<span style="background:#3b82f6;color:white;padding:2px 8px;
+                border-radius:10px;font-size:0.75rem;">CONCEPT</span>`;
+
+        const cleanQuestion = q.question.replace(/\[PYQ\]|\[CONCEPT\]/g, "").trim();
+
+        let optionsHTML = "";
+        Object.entries(q.options).forEach(([key, val]) => {
+            optionsHTML += `
+                <div id="opt_${q.num}_${key}" 
+                     onclick="selectAnswer(${q.num}, '${key}')"
+                     style="padding:10px 15px; margin:6px 0; border-radius:8px;
+                            background:#020617; cursor:pointer; border:2px solid #334155;
+                            transition:0.2s;">
+                    <strong>${key}.</strong> ${val}
+                </div>`;
+        });
+
+        card.innerHTML = `
+            <p style="margin:0 0 10px 0;">
+                ${tag} 
+                <strong>Q${q.num}.</strong> ${cleanQuestion}
+            </p>
+            <div id="options_${q.num}">${optionsHTML}</div>
+            <div id="explanation_${q.num}" style="display:none; margin-top:12px;
+                 background:#0f172a; padding:12px; border-radius:8px; 
+                 border-left:4px solid #22c55e;">
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+async function selectAnswer(qNum, selected) {
+    // Prevent re-answering
+    if (userAnswers[qNum]) return;
+    userAnswers[qNum] = selected;
+
+    const q = quizData[qNum - 1];
+    const correct = q.correct;
+    const isCorrect = selected === correct;
+
+    if (isCorrect) score++;
+
+    // Color the options
+    Object.keys(q.options).forEach(key => {
+        const el = document.getElementById(`opt_${qNum}_${key}`);
+        if (key === correct) {
+            el.style.background = "#166534";
+            el.style.borderColor = "#22c55e";
+        } else if (key === selected && !isCorrect) {
+            el.style.background = "#7f1d1d";
+            el.style.borderColor = "#ef4444";
         }
+        el.style.cursor = "default";
+    });
 
-    }, 2000);
-};
+    // Show explanation if wrong
+    const expDiv = document.getElementById(`explanation_${qNum}`);
+    expDiv.style.display = "block";
 
-  dgSocket.onerror = (e) => showToast('Deepgram WebSocket error');
-  dgSocket.onclose = () => {};
+    if (isCorrect) {
+        expDiv.style.borderColor = "#22c55e";
+        expDiv.innerHTML = `✅ <strong>Correct!</strong> Well done.`;
+    } else {
+        expDiv.style.borderColor = "#ef4444";
+        expDiv.innerHTML = `⏳ Getting explanation...`;
+
+        // Fetch explanation from AI
+        const res = await fetch(`${BASE_URL}/explain-wrong`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                question: q.question,
+                user_answer: `${selected}. ${q.options[selected]}`,
+                correct_answer: `${correct}. ${q.options[correct]}`
+            })
+        });
+        const data = await res.json();
+        expDiv.innerHTML = `
+            ❌ <strong>Wrong!</strong> Correct answer: 
+            <span style="color:#22c55e">${correct}. ${q.options[correct]}</span><br><br>
+            📖 <strong>Explanation:</strong><br>${data.explanation || ""}
+        `;
+    }
+
+    // Check if all answered
+    if (Object.keys(userAnswers).length === quizData.length) {
+        showFinalScore();
+    }
 }
 
-function getSupportedMime() {
-  const types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
-  for (const t of types) if (MediaRecorder.isTypeSupported(t)) return t;
-  return '';
+function showFinalScore() {
+    const total = quizData.length;
+    const pct = Math.round((score / total) * 100);
+
+    let msg = "";
+    if (pct >= 80) msg = "🎉 Excellent! You're exam ready!";
+    else if (pct >= 60) msg = "👍 Good effort! Review weak topics.";
+    else msg = "📚 Need more practice. Review PYQs!";
+
+    document.getElementById("score_summary").style.display = "block";
+    document.getElementById("score_text").innerText = `Score: ${score}/${total} (${pct}%)`;
+    document.getElementById("score_msg").innerText = msg;
+
+    document.getElementById("score_summary").scrollIntoView({behavior: "smooth"});
 }
+// Analysis
+async function analyze() {
 
-async function stopListening() {
-  micBtn.classList.remove('recording');
-  transcriptPre.classList.remove('active');
+    let res = await fetch(`${BASE_URL}/weak-analysis`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            subject: selectedSubject,
+            unit: "Unit",
+            mistakes: document.getElementById("mistakes").value || "Analyze my weak topics"
+        })
+    });
 
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-
-  // Give Deepgram a moment to flush final transcript
-  await new Promise(r => setTimeout(r, 600));
-  if (dgSocket) { dgSocket.close(); dgSocket = null; }
-
-  const question = liveTranscript.trim();
-  if (!question) {
-    showToast('No speech detected. Please try again.');
-    setState('idle');
-    transcriptPre.textContent = 'Your question will appear here…';
-    return;
-  }
-
-  transcriptPre.textContent = question;
-  addBubble('student', question);
-  await processQuestion(question);
+    let data = await res.json();
+    document.getElementById("analysis_output").innerText = data.analysis;
 }
+function selectSubject(e, sub) {
+    if (sub !== "SDN") {
+        alert("Only SDN available currently");
+        return;
+    }
 
-// ═══════════════════════════════════════════════════════════════
-//  MAIN PIPELINE  — question → answer → TTS
-// ═══════════════════════════════════════════════════════════════
-async function processQuestion(question) {
-  setState('thinking');
-  let answer = '';
-  let pyqMatch = false;
+    selectedSubject = sub;
 
-  try {
-    const data = await askBackend(question);
+    document.querySelectorAll(".subject").forEach(s => s.classList.remove("active"));
 
-    answer = data.answer || data.ERROR;
+    e.target.classList.add("active");
+}
+async function evaluateAnswer() {
     
-  } catch(e) {
-    showToast('Groq error: ' + e.message);
-    setState('idle');
+    const question = document.getElementById("generatedQuestion").innerText;
+    if (!question) {
+    alert("Click 'Get Question' first");
     return;
-  }
+}
+    const answer = document.getElementById("answerInput").value;
 
-  addBubble('ai', answer, pyqMatch);
+    const res = await fetch(`${BASE_URL}/evaluate-answer`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            question: question,
+            user_answer: answer
+        })
+    });
 
-  setState('speaking');
+    const data = await res.json();
+    document.getElementById("evaluationResult").innerText = data.evaluation || data.ERROR;
+}
 
-try {
+async function uploadImage() {
+    const fileInput = document.getElementById("imageInput");
 
-    const shortAnswer =
-        answer.substring(0, 300);
+    // ✅ GET AI GENERATED QUESTION
+    const question = document.getElementById("generatedQuestion").innerText;
+    if (!question) {
+    alert("Click 'Get Question' first");
+    return;
+}
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
 
-    await speakSarvam(shortAnswer);
+    // ✅ ADD QUESTION (VERY IMPORTANT)
+    formData.append("question", question || "Evaluate this answer");
 
-} catch(e) {
+    const res = await fetch(`${BASE_URL}/evaluate-answer-image`, {
+        method: "POST",
+        body: formData
+    });
 
-    showToast(
-        'TTS error — playing text only. ' + e.message
+    const data = await res.json();
+    document.getElementById("evaluationResult").innerText = data.evaluation || data.ERROR;
+}
+async function generateQuestion() {
+    const res = await fetch(
+        `${BASE_URL}/generate-practice-question?subject=${selectedSubject}`
     );
+    const data = await res.json();
+    document.getElementById("generatedQuestion").innerText = data.question || data.ERROR;
 }
+function openAssistant() {
 
-  setState('idle');
-  transcriptPre.textContent = 'Your question will appear here…';
+    window.location.href =
+        "../Virtual Assis/index.html";
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  BUTTON HANDLERS
-// ═══════════════════════════════════════════════════════════════
-micBtn.addEventListener('click', async () => {
-  if (appState !== 'idle') return;
-  await startListening();
-});
-
-stopBtn.addEventListener('click', async () => {
-  if (appState !== 'listening') return;
-  setState('thinking'); // prevent double-tap
-  await stopListening();
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════════
-(async () => {
-  setState('idle');
-  
-})();
 </script>
+
 </body>
 </html>
